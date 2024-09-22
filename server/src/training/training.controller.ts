@@ -31,6 +31,7 @@ export class TrainingController {
       throw new InternalServerErrorException('User not found');
     }
 
+    console.log(createTrainingDto);
     return this.trainingService.create(createTrainingDto, user);
   }
 

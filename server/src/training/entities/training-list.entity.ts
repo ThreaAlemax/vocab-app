@@ -17,7 +17,7 @@ export class TrainingList {
   @Column()
   name: string;
 
-  @Column()
+  @Column('text')
   items: string;
 
   @ManyToOne(() => Training, (training) => training.trainingLists)

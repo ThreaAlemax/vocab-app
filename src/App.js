@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
-import ProtectedRoute from './components/ProtectedRoute';
+import ProtectedRoute from './components/utilities/ProtectedRoute';
 
-import UserHeader from "./components/UserHeader";
-import UserList from "./components/UserList";
-import Login from "./components/Login";
-import Dashboard from "./components/Dashboard";
-import CreateUser from './components/CreateUser';
+import Header from "./components/layout/Header";
+import UserList from "./components/pages/UserList";
+import Login from "./components/pages/Login";
+import Dashboard from "./components/pages/Dashboard";
+import CreateUser from './components/pages/CreateUser';
+import Practice from './components/pages/Practice';
 
 import './App.css';
 
@@ -50,7 +51,8 @@ const App = () => {
     <Router>
       <div className="App">
         <header>
-          <UserHeader isAuthenticated={isAuthenticated} setIsAuthenticated={setIsAuthenticated} />
+          <Header isAuthenticated={isAuthenticated} setIsAuthenticated={setIsAuthenticated} />
+
         </header>
 
         <Routes>
@@ -61,6 +63,14 @@ const App = () => {
             element={
               <ProtectedRoute isAuthenticated={isAuthenticated}>
                 <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/practice/:trainingId"
+            element={
+              <ProtectedRoute isAuthenticated={isAuthenticated}>
+                <Practice />
               </ProtectedRoute>
             }
           />
