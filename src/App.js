@@ -67,7 +67,7 @@ const App = () => {
             }
           />
           <Route
-            path="/practice/:trainingId"
+            path="/practice/:id"
             element={
               <ProtectedRoute isAuthenticated={isAuthenticated}>
                 <Practice />

@@ -2,30 +2,36 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+
 import { UsersModule } from './users/users.module';
-import { Users } from './users/users.entity';
-import { Training } from './training/entities/training.entity';
-import { TrainingList } from './training/entities/training-list.entity';
 import { AuthModule } from './auth/auth.module';
-import { TrainingController } from './training/training.controller';
-import { TrainingService } from './training/training.service';
 import { TrainingModule } from './training/training.module';
-import { TrainingResult } from './training/entities/training-result.entity';
+import { ChatgptModule } from './chatgpt/chatgpt.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot({
-      type: 'mysql',
-      host: 'localhost',
-      username: 'root',
-      password: 'root',
-      database: 'robbie',
-      entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: true, // Automatically sync the database schema (good for development)
+    ConfigModule.forRoot({
+      isGlobal: true, // Makes the ConfigModule globally available
+    }),
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        type: 'mysql',
+        host: configService.get<string>('DATABASE_HOST'),
+        port: configService.get<number>('DATABASE_PORT'),
+        username: configService.get<string>('DATABASE_USER'),
+        password: configService.get<string>('DATABASE_PASSWORD'),
+        database: configService.get<string>('DATABASE_NAME'),
+        entities: [__dirname + '/**/*.entity{.ts,.js}'],
+        synchronize: true, // Automatically sync the database schema (good for development)
+      }),
     }),
     UsersModule,
     AuthModule,
     TrainingModule,
+    ChatgptModule,
   ],
   controllers: [AppController],
   providers: [AppService],

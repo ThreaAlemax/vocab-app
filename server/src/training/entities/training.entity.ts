@@ -29,8 +29,8 @@ export class Training {
   @Column()
   name: string;
 
-  @Column('text')
-  items: string;
+  @Column('json', { nullable: false })
+  items: string[];
 
   @OneToMany(() => TrainingList, (trainingList) => trainingList.training)
   trainingLists: TrainingList[];

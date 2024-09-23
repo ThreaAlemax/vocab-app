@@ -23,7 +23,7 @@ export class TrainingService {
     // Create a new user
     const newTraining = this.trainingRepository.create({
       ...createTrainingDto,
-      items: JSON.stringify(createTrainingDto.items),
+      items: createTrainingDto.items,
       user,
     });
 
@@ -41,22 +41,31 @@ export class TrainingService {
 
   async findAll() {
     const trainings = await this.trainingRepository.find();
-    return trainings.map(training => ({
-      ...training,
-      items: training.items && training.items.trim() !== "" ? JSON.parse(training.items) : [],
-    }));
+    return trainings;
   }
-  async findOne(id: number) {
-    const training = await this.trainingRepository.findOne( { where: { id }} );
-    training.items = training.items && training.items.trim() !== "" ? JSON.parse(training.items) : [];
+  async findOneByUserId(id: number, userId: number) {
+    const training = await this.trainingRepository.findOneBy({
+      id: id,
+      user: { id: userId }
+    });
+
+    if (!training) {
+      throw new Error('Training not found');
+    }
+
     return training;
   }
-
+  async findOne(id: number) {
+    const training = await this.trainingRepository.findOneBy({
+      id: id
+    });
+    return training;
+  }
   async update(id: number, updateTrainingDto: UpdateTrainingDto) {
 
     const updateData = {
       ...updateTrainingDto,
-      items: JSON.stringify(updateTrainingDto.items),
+      items: updateTrainingDto.items,
     };
 
     return await this.trainingRepository.update(id, updateData);

@@ -79,7 +79,6 @@ const Dashboard = () => {
       });
   };
 
-  // Add the handleEditTraining function
   const handleEditTraining = (training) => {
     setNewTraining(training);
     setShowModal(true);
@@ -99,6 +98,10 @@ const Dashboard = () => {
       .catch(error => {
         console.error('Error deleting training:', error);
       });
+  };
+
+  const handleStartTraining = (id) => {
+    navigate(`/practice/${id}`);
   };
 
   return (
@@ -128,11 +131,16 @@ const Dashboard = () => {
             <td className="py-2 px-4 border-b">{training.name}</td>
             <td className="py-2 px-4 border-b">{training.type}</td>
             <td className="py-2 px-4 border-b">
-              {training.items.join(', ')}
+              {training.items && training.items.join(', ')}
             </td>
             <td className="py-2 px-4 border-b">{training.created_at}</td>
             <td className="py-2 px-4 border-b">
-              <a href="#" className="text-blue-500 hover:text-blue-700 mr-2">Start</a>
+              <button
+                className="text-blue-500 hover:text-blue-700 mr-2"
+                onClick={() => handleStartTraining(training.id)}
+              >
+                Start
+              </button>
               <button
                 className="text-green-500 hover:text-green-700 mr-2"
                 onClick={() => handleEditTraining(training)}
@@ -182,7 +190,7 @@ const Dashboard = () => {
             </div>
             <div className="mb-4">
               <label className="block text-gray-700 text-left">Words:</label>
-              {newTraining.items.map((item, index) => (
+              {Array.isArray(newTraining.items) && newTraining.items.map((item, index) => (
                 <div key={index} className="flex items-center mb-2">
                   <input
                     type="text"
