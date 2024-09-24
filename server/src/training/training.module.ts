@@ -7,8 +7,9 @@ import { TrainingController } from './training.controller';
 import { Training } from './entities/training.entity';
 import { TrainingList } from './entities/training-list.entity';
 import { TrainingResult } from './entities/training-result.entity';
-import {UsersService} from "../users/users.service";
-import {ChatgptModule} from "../chatgpt/chatgpt.module";
+import { UsersService } from "../users/users.service";
+import { ChatgptModule } from "../chatgpt/chatgpt.module";
+import { TrainingListService } from "./training-list.service";
 
 @Module({
   imports: [
@@ -17,7 +18,7 @@ import {ChatgptModule} from "../chatgpt/chatgpt.module";
     ChatgptModule
   ],
   controllers: [TrainingController],
-  providers: [TrainingService, UsersService],
+  providers: [TrainingService, TrainingListService, UsersService],
   exports: [TrainingService],
 })
 export class TrainingModule {}

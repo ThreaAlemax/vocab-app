@@ -15,10 +15,10 @@ export class TrainingList {
   id: number;
 
   @Column()
-  name: string;
+  type: string;
 
-  @Column('text')
-  items: string;
+  @Column('json', { nullable: false })
+  items: any;
 
   @ManyToOne(() => Training, (training) => training.trainingLists)
   @JoinColumn({ name: 'training_id' })

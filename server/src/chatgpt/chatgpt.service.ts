@@ -11,29 +11,16 @@ export class ChatgptService {
   });
   private readonly openaiApiKey = process.env.OPENAI_API_KEY;
 
-  // Define a method to send requests to OpenAIq
-  async sendMessage(prompt: string): Promise<{ message: string, meta: any }> {
+  // Define a method to send requests to OpenAI
+  async sendMessage(prompt: string, context?: any[]): Promise<{ message: string, meta: any }> {
+    context.push({
+      role: "user",
+      content: prompt,
+    });
 
     const completion = await this.openai.chat.completions.create({
       model: "gpt-3.5-turbo",
-      messages: [
-        {
-          role: "system",
-          content: "You are a helpful vocabulary assistant for my web app. We will be helping users improve their english vocabulary. I will provide you a list of words the user is trying to improve focusing on, your focus for the words I provide will be: definition, spelling."
-        },
-        {
-          role: "system",
-          content: "We are in the testing phase sso if you have any recommendations how we can set better content in the conversation, please let me know."
-        },
-        {
-          role: "system",
-          content: "My app supports markdown syntax so you can use it to format your responses."
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
+      messages: context,
     });
 
     return { message: completion.choices[0].message.content, meta: completion }
