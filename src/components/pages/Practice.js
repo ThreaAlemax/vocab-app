@@ -172,7 +172,7 @@ function Practice() {
   }, [id]);
 
   useEffect(() => {
-
+    getNextQuestion();
   }, [currentWordIndex]);
 
   return (
