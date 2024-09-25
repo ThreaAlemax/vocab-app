@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 
 function ChatBoxAlert({ alert }) {
@@ -35,6 +35,14 @@ function ChatBox({ alerts, messages }) {
   );
 }
 
+const getObfuscatedWord = (word) => {
+  return word.split('').map(() => '_').join(' ');
+};
+
+const getObfuscatedSentence = (sentence, word) => {
+  return sentence.replace(word, getObfuscatedWord(word));
+};
+
 function Practice() {
   const [training, setTraining] = useState(null);
   const [chatBoxMessages, setChatBoxMessages] = useState([]);
@@ -45,15 +53,7 @@ function Practice() {
   const [isPracticeStarted, setIsPracticeStarted] = useState(false);
   const { id } = useParams();
 
-  const getObfuscatedWord = (word) => {
-    return word.split('').map(() => '_').join(' ');
-  };
-
-  const getObfuscatedSentence = (sentence, word) => {
-    return sentence.replace(word, getObfuscatedWord(word));
-  };
-
-  const fetchTraining = async () => {
+  const fetchTraining = useCallback(async () => {
     try {
       const response = await fetch(`${process.env.REACT_APP_API_URL}/training/${id}`, {
         headers: {
@@ -65,9 +65,9 @@ function Practice() {
     } catch (error) {
       console.error('Error fetching training:', error);
     }
-  };
+  }, [id]);
 
-  const fetchTrainingWords = async () => {
+  const fetchTrainingWords = useCallback(async () => {
     try {
       const response = await fetch(`${process.env.REACT_APP_API_URL}/training/start`, {
         method: 'POST',
@@ -75,18 +75,14 @@ function Practice() {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ id, answer: userAnswer }),
+        body: JSON.stringify({ id }),
       });
       const data = await response.json();
       localStorage.setItem('words', JSON.stringify(data));
-
-      setWords(data);
-      setChatBoxMessages([]);
-      setUserAnswer('');
     } catch (error) {
       console.error('Error fetching next question:', error);
     }
-  };
+  }, [id]);
 
   const addChatBoxMessage = (message) => {
     setChatBoxMessages((prevMessages) => [ { type: 'message', message }]);
@@ -104,7 +100,7 @@ function Practice() {
     }
   };
 
-  function WordsList({ words }) {
+  const WordsList = ({ words }) => {
     return Object.entries(words).map(([word, details]) => (
       <div className="trainig-word text-left my-4" key={word}>
         <h2 className="trainig-word__word text-2xl font-semibold">
@@ -115,24 +111,22 @@ function Practice() {
         <p className="trainig-word__example"><em>{details.example}</em></p>
       </div>
     ));
-  }
+  };
 
-  const initPractice = () => {
+  const initPractice = useCallback(() => {
     const words = JSON.parse(localStorage.getItem('words'));
     setWords(words);
 
     addChatBoxAlert('default', 'Welcome to the practice session!', 'keep');
     addChatBoxMessage(<WordsList words={words} />);
-  };
+  }, []);
 
   const startPractice = () => {
-    const words = JSON.parse(localStorage.getItem('words'));
     getNextQuestion();
     setIsPracticeStarted(true);
   };
 
-  const getNextQuestion = () => {
-    setUserAnswer('');
+  const getNextQuestion = useCallback(() => {
     const words = JSON.parse(localStorage.getItem('words'));
     const currentWord = Object.keys(words)[currentWordIndex];
     const currentWordData = words[currentWord];
@@ -146,7 +140,7 @@ function Practice() {
       </>
     );
     addChatBoxMessage(html);
-  };
+  }, [currentWordIndex]);
 
   const handleUserSubmit = () => {
     const words = JSON.parse(localStorage.getItem('words'));
@@ -155,7 +149,7 @@ function Practice() {
     if (userAnswer.toLowerCase() === currentWord) {
       addChatBoxAlert('success', 'Correct!');
       setCurrentWordIndex((prevIndex) => prevIndex + 1);
-      getNextQuestion();
+      setUserAnswer('');
     } else {
       addChatBoxAlert('error', 'Incorrect. Try again.');
     }
@@ -169,11 +163,13 @@ function Practice() {
             initPractice();
           });
       });
-  }, [id]);
+  }, [id, fetchTraining, fetchTrainingWords, initPractice]);
 
   useEffect(() => {
-    getNextQuestion();
-  }, [currentWordIndex]);
+    if (isPracticeStarted) {
+      getNextQuestion();
+    }
+  }, [getNextQuestion, isPracticeStarted]);
 
   return (
     <div className="p-4 bg-gray-100 min-h-screen">
