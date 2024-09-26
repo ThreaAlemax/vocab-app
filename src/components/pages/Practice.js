@@ -112,6 +112,7 @@ function Practice() {
   }
 
   function addChatBoxAlert(type, message, mode = 'default') {
+    // console.log('addChatBoxAlert', type, message, mode);
     const alert = { type, message };
 
     setChatBoxAlerts((prevAlerts) => [alert]);
@@ -124,9 +125,10 @@ function Practice() {
   }
 
   const initPractice = useCallback(() => {
+    const words = JSON.parse(localStorage.getItem('words'));
     addChatBoxAlert('default', 'Welcome to the practice session!', 'keep');
     addChatBoxMessage(<TrainingWordsList words={words} />);
-  }, [words]);
+  }, []);
 
   const startPractice = () => {
     getNextQuestion();
