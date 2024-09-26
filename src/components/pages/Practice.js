@@ -35,13 +35,35 @@ function ChatBox({ alerts, messages }) {
   );
 }
 
-const getObfuscatedWord = (word) => {
+function getObfuscatedWord(word = '') {
   return word.split('').map(() => '_').join(' ');
-};
+}
 
-const getObfuscatedSentence = (sentence, word) => {
+function getObfuscatedSentence(sentence = '', word = '') {
   return sentence.replace(word, getObfuscatedWord(word));
-};
+}
+
+function TrainingWordsList({ words }){
+  return Object.entries(words).map(([word, details]) => (
+    <div className="trainig-word text-left my-4" key={word}>
+      <h2 className="trainig-word__word text-2xl font-semibold">
+        {word} <span>({details.phonetic})</span>
+      </h2>
+      <p className="trainig-word__type">{details.type}</p>
+      <p className="trainig-word__definition">{details.definition}</p>
+      <p className="trainig-word__example"><em>{details.example}</em></p>
+    </div>
+  ));
+}
+
+function ObfuscatedQuestion({ obfuscate }) {
+  return (
+    <>
+      <p className="my-4">{getObfuscatedWord(obfuscate.word)}</p>
+      <p className="my-10">{getObfuscatedSentence(obfuscate.sentence, obfuscate.word)}</p>
+    </>
+  );
+}
 
 function Practice() {
   const [training, setTraining] = useState(null);
@@ -78,17 +100,18 @@ function Practice() {
         body: JSON.stringify({ id }),
       });
       const data = await response.json();
+      setWords(data);
       localStorage.setItem('words', JSON.stringify(data));
     } catch (error) {
       console.error('Error fetching next question:', error);
     }
-  }, [id]);
+  }, [id, setWords]);
 
-  const addChatBoxMessage = (message) => {
+  function addChatBoxMessage (message) {
     setChatBoxMessages((prevMessages) => [ { type: 'message', message }]);
-  };
+  }
 
-  const addChatBoxAlert = (type, message, mode = 'default') => {
+  function addChatBoxAlert(type, message, mode = 'default') {
     const alert = { type, message };
 
     setChatBoxAlerts((prevAlerts) => [alert]);
@@ -98,28 +121,12 @@ function Practice() {
         setChatBoxAlerts((prevAlerts) => prevAlerts.filter((a) => a !== alert));
       }, 2000);
     }
-  };
-
-  const WordsList = ({ words }) => {
-    return Object.entries(words).map(([word, details]) => (
-      <div className="trainig-word text-left my-4" key={word}>
-        <h2 className="trainig-word__word text-2xl font-semibold">
-          {word} <span>({details.phonetic})</span>
-        </h2>
-        <p className="trainig-word__type">{details.type}</p>
-        <p className="trainig-word__definition">{details.definition}</p>
-        <p className="trainig-word__example"><em>{details.example}</em></p>
-      </div>
-    ));
-  };
+  }
 
   const initPractice = useCallback(() => {
-    const words = JSON.parse(localStorage.getItem('words'));
-    setWords(words);
-
     addChatBoxAlert('default', 'Welcome to the practice session!', 'keep');
-    addChatBoxMessage(<WordsList words={words} />);
-  }, []);
+    addChatBoxMessage(<TrainingWordsList words={words} />);
+  }, [words]);
 
   const startPractice = () => {
     getNextQuestion();
@@ -127,23 +134,12 @@ function Practice() {
   };
 
   const getNextQuestion = useCallback(() => {
-    const words = JSON.parse(localStorage.getItem('words'));
     const currentWord = Object.keys(words)[currentWordIndex];
-    const currentWordData = words[currentWord];
-
-    const obfuscatedWord = getObfuscatedWord(currentWord);
-    const obfuscatedSentence = getObfuscatedSentence(currentWordData.example, currentWord);
-    const html = (
-      <>
-        <p className="my-4">{obfuscatedSentence}</p>
-        <p className="my-10">{obfuscatedWord}</p>
-      </>
-    );
-    addChatBoxMessage(html);
-  }, [currentWordIndex]);
+    const currentWordDetails = words[currentWord];
+    addChatBoxMessage(<ObfuscatedQuestion obfuscate={{word: currentWord, sentence: currentWordDetails.example }} />);
+  }, [currentWordIndex, words]);
 
   const handleUserSubmit = () => {
-    const words = JSON.parse(localStorage.getItem('words'));
     const currentWord = Object.keys(words)[currentWordIndex];
 
     if (userAnswer.toLowerCase() === currentWord) {
