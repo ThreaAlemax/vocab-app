@@ -46,7 +46,7 @@ export class TrainingService {
   async findOneByUserId(id: number, userId: number) {
     const training = await this.trainingRepository.findOneBy({
       id: id,
-      user: { id: userId }
+      user: { id: userId },
     });
 
     if (!training) {

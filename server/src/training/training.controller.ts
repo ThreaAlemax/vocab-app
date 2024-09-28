@@ -6,7 +6,8 @@ import {
   Patch,
   Param,
   Delete,
-  Req, InternalServerErrorException,
+  Req,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { UseGuards } from '@nestjs/common';
 import { TrainingService } from './training.service';
@@ -14,7 +15,7 @@ import { CreateTrainingDto } from './dto/create-training.dto';
 import { UpdateTrainingDto } from './dto/update-training.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UsersService } from '../users/users.service';
-import { ChatgptService } from "../chatgpt/chatgpt.service";
+import { ChatgptService } from '../chatgpt/chatgpt.service';
 import { TrainingListService } from './training-list.service';
 
 import wordsListContext from './context/words.list';
@@ -47,39 +48,52 @@ export class TrainingController {
 
   @Get('/:id')
   @UseGuards(JwtAuthGuard)
-  async findOne(@Param('id') id: string, @Req() req: any)  {
+  async findOne(@Param('id') id: string, @Req() req: any) {
     const user = await this.usersService.findByEmail(req.user.email);
     return this.trainingService.findOneByUserId(+id, user.id);
   }
 
   @Post('/start')
   @UseGuards(JwtAuthGuard)
-  async start(@Body() payload: any, @Req() req: any)  {
+  async start(@Body() payload: any, @Req() req: any) {
     const user = await this.usersService.findByEmail(req.user.email);
-    const training = await this.trainingService.findOneByUserId(+payload.id, user.id);
+    const training = await this.trainingService.findOneByUserId(
+      +payload.id,
+      user.id,
+    );
 
     if (!training) {
       throw new InternalServerErrorException('Training not found');
     }
 
-    const existingTrainingList = await this.trainingListService.findOneByIdAndType(training.id, 'word_list');
+    const existingTrainingList =
+      await this.trainingListService.findOneByIdAndType(
+        training.id,
+        'word_list',
+      );
 
     if (existingTrainingList) {
       // if the training list already exists we do not need to get response from chatgpt
       return existingTrainingList.items;
     } else {
       const words = this.getWordsToString(training.items);
-      const response = await this.chatGpt.sendMessage(`Words to improve in: ${words}`, wordsListContext);
+      const response = await this.chatGpt.sendMessage(
+        `Words to improve in: ${words}`,
+        wordsListContext,
+      );
 
       try {
-        await this.trainingListService.create('word_list', training, response.message);
+        await this.trainingListService.create(
+          'word_list',
+          training,
+          response.message,
+        );
         return JSON.parse(JSON.stringify(response.message));
       } catch (e) {
         console.log('catch:', response.message);
         return response.message;
       }
     }
-
   }
 
   getWordsToString(array: string[]) {
@@ -87,7 +101,10 @@ export class TrainingController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateTrainingDto: UpdateTrainingDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateTrainingDto: UpdateTrainingDto,
+  ) {
     return this.trainingService.update(+id, updateTrainingDto);
   }
 
