@@ -32,7 +32,7 @@ export class TrainingController {
   @Post()
   @UseGuards(JwtAuthGuard)
   async create(@Body() createTrainingDto: CreateTrainingDto, @Req() req: any) {
-    const user = await this.usersService.findOne(req.user.id);
+    const user = await this.usersService.findOne(req.user.userId);
 
     if (!user) {
       throw new InternalServerErrorException('User not found');
