@@ -4,7 +4,7 @@ import { useParams } from 'react-router-dom';
 function ChatBox({ alerts, messages }) {
   function ChatBoxAlert({ alert }) {
     return (
-      <div className={`chatbox-alert chatbox-alert--${alert.type}`}>
+      <div className={`chatbox-alert chatbox-alert--${alert.type} py-2`}>
         {alert.message}
       </div>
     );
@@ -48,10 +48,47 @@ function TrainingWordsList({ words }){
   ));
 }
 
-function ObfuscatedQuestion({ obfuscate: { word, sentence } }) {
+function PracticeSummary({ results }) {
+  const summary = results.reduce((acc, result) => {
+    if (!acc[result.word]) {
+      acc[result.word] = { correct: 0, total: 0 };
+    }
+    acc[result.word].total += 1;
+    if (result.isCorrect) {
+      acc[result.word].correct += 1;
+    }
+    return acc;
+  }, {});
 
-  function getObfuscatedWord(word = '') {
-    return word.split('').map(() => '_').join(' ');
+  const accuracy = ((results.filter(result => result.isCorrect).length / results.length) * 100).toFixed(2);
+
+  return (
+    <div className="summary text-left mx-auto max-w-screen-md bg-white">
+      <h2 className="text-2xl font-bold my-4">Summary</h2>
+      <table className="table-auto w-full">
+        <thead>
+        <tr>
+          <th className="px-4 py-2">Word</th>
+          <th className="px-4 py-2">Result</th>
+        </tr>
+        </thead>
+        <tbody>
+        {Object.entries(summary).map(([word, { correct, total }], index) => (
+          <tr key={index}>
+            <td className="border px-4 py-2">{word}</td>
+            <td className="border px-4 py-2">{`${correct}/${total}`}</td>
+          </tr>
+        ))}
+        </tbody>
+      </table>
+      <p className="my-4">Accuracy: {accuracy}%</p>
+    </div>
+  );
+}
+
+function ObfuscatedQuestion({ word, sentence, answer }) {
+  function getObfuscatedWord(word = '', userAnswer = '') {
+    return word.split('').map((char, index) => (userAnswer[index] === char ? char : '_')).join(' ');
   }
 
   function getObfuscatedSentence(sentence = '', word = '') {
@@ -60,21 +97,29 @@ function ObfuscatedQuestion({ obfuscate: { word, sentence } }) {
 
   return (
     <>
-      <p className="my-4">{getObfuscatedWord(word)}</p>
+      <p className="my-4">{getObfuscatedWord(word, answer)}</p>
       <p className="my-10">{getObfuscatedSentence(sentence, word)}</p>
     </>
   );
 }
 
 function Practice() {
+  const { id } = useParams();
   const [training, setTraining] = useState(null);
+
   const [chatBoxMessages, setChatBoxMessages] = useState([]);
   const [chatBoxAlerts, setChatBoxAlerts] = useState([]);
+
   const [userAnswer, setUserAnswer] = useState('');
-  const [currentWordIndex, setCurrentWordIndex] = useState(0);
+  const [userSubmittedAnswer, setUserSubmittedAnswer] = useState('');
+
   const [words, setWords] = useState([]);
+  const [currentWordIndex, setCurrentWordIndex] = useState(0);
+
   const [isPracticeStarted, setIsPracticeStarted] = useState(false);
-  const { id } = useParams();
+  const [practiceComplete, setPracticeComplete] = useState(false);
+
+  const [results, setResults] = useState([]);
 
   function addChatBoxMessage (message) {
     setChatBoxMessages((prevMessages) => [ { type: 'default', message }]);
@@ -90,14 +135,27 @@ function Practice() {
     }
   }
 
-  function handleUserSubmit(){
+  function handleUserSubmit(answer) {
     const currentWord = Object.keys(words)[currentWordIndex];
+    const isCorrect = userAnswer.toLowerCase() === currentWord;
 
-    if (userAnswer.toLowerCase() === currentWord) {
+    setResults((prevResults) => [
+      ...prevResults,
+      { word: currentWord, isCorrect }
+    ]);
+
+    if (isCorrect) {
       addChatBoxAlert('success', 'Correct!');
-      setCurrentWordIndex((prevIndex) => prevIndex + 1);
+      if (currentWordIndex === Object.keys(words).length - 1) {
+        setPracticeComplete(true);
+        addChatBoxAlert('success', 'You have completed all words!');
+        addChatBoxMessage('');
+      } else {
+        setCurrentWordIndex((prevIndex) => prevIndex + 1);
+      }
       setUserAnswer('');
     } else {
+      setUserSubmittedAnswer(userAnswer);
       addChatBoxAlert('error', 'Incorrect. Try again.');
     }
   }
@@ -105,8 +163,10 @@ function Practice() {
   const getNextQuestion = useCallback(() => {
     const currentWord = Object.keys(words)[currentWordIndex];
     const currentWordDetails = words[currentWord];
-    addChatBoxMessage(<ObfuscatedQuestion obfuscate={{ word: currentWord, sentence: currentWordDetails.example }} />);
-  }, [currentWordIndex, words]);
+    addChatBoxMessage(
+      <ObfuscatedQuestion word={currentWord} sentence={currentWordDetails.example} answer={userSubmittedAnswer} />
+    );
+  }, [words, currentWordIndex, userSubmittedAnswer]);
 
   useEffect(() => {
     const fetchTraining = async (id) => {
@@ -162,32 +222,38 @@ function Practice() {
     <div className="p-4 bg-gray-100 min-h-screen">
       {training ? (
         <div>
-          <h1 className="text-2xl font-bold mb-6">Practice {training.name}</h1>
+          <h1 className="text-2xl font-bold mb-6">{training.name}</h1>
           <ChatBox alerts={chatBoxAlerts} messages={chatBoxMessages}/>
-          <input
-            type="text"
-            value={userAnswer}
-            onChange={(e) => setUserAnswer(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                handleUserSubmit();
-              }
-            }}
-            className="border p-2 mr-2"
-          />
-          <button
-            onClick={handleUserSubmit}
-            className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
-            disabled={!isPracticeStarted}
-          >
-            Submit
-          </button>
-          <button
-            onClick={() => setIsPracticeStarted(true)}
-            className="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600 ml-2"
-          >
-            Start
-          </button>
+          {practiceComplete ? (
+            <PracticeSummary results={results} />
+          ) : (
+            <>
+              <input
+                type="text"
+                value={userAnswer}
+                onChange={(e) => setUserAnswer(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleUserSubmit(userAnswer);
+                  }
+                }}
+                className="border p-2 mr-2"
+              />
+              <button
+                onClick={handleUserSubmit}
+                className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
+                disabled={!isPracticeStarted}
+              >
+                Submit
+              </button>
+              <button
+                onClick={() => setIsPracticeStarted(true)}
+                className="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600 ml-2"
+              >
+                Start
+              </button>
+            </>
+          )}
         </div>
       ) : (
         <p>Loading...</p>
