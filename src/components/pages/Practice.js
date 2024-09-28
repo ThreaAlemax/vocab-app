@@ -1,23 +1,23 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 
-function ChatBoxAlert({ alert }) {
-  return (
-    <div className={`chatbox-alert chatbox-alert--${alert.type}`}>
-      {alert.message}
-    </div>
-  );
-}
-
-function ChatBoxMessage({ message }) {
-  return (
-    <div className="my-10 text-center">
-      {message}
-    </div>
-  );
-}
-
 function ChatBox({ alerts, messages }) {
+  function ChatBoxAlert({ alert }) {
+    return (
+      <div className={`chatbox-alert chatbox-alert--${alert.type}`}>
+        {alert.message}
+      </div>
+    );
+  }
+
+  function ChatBoxMessage({ message }) {
+    return (
+      <div className="my-10 text-center">
+        {message}
+      </div>
+    );
+  }
+
   return (
     <div className="chatbox w-full bg-white p-4 pt-0 mb-4 max-h-96 min-h-96 max-w-screen-lg mx-auto text-left overflow-auto relative">
       <div className="chatbox-alerts z-10 h-16 text-center sticky top-0 w-full bg-white py-5">
@@ -35,14 +35,6 @@ function ChatBox({ alerts, messages }) {
   );
 }
 
-function getObfuscatedWord(word = '') {
-  return word.split('').map(() => '_').join(' ');
-}
-
-function getObfuscatedSentence(sentence = '', word = '') {
-  return sentence.replace(word, getObfuscatedWord(word));
-}
-
 function TrainingWordsList({ words }){
   return Object.entries(words).map(([word, details]) => (
     <div className="trainig-word text-left my-4" key={word}>
@@ -56,11 +48,20 @@ function TrainingWordsList({ words }){
   ));
 }
 
-function ObfuscatedQuestion({ obfuscate }) {
+function ObfuscatedQuestion({ obfuscate: { word, sentence } }) {
+
+  function getObfuscatedWord(word = '') {
+    return word.split('').map(() => '_').join(' ');
+  }
+
+  function getObfuscatedSentence(sentence = '', word = '') {
+    return sentence.replace(word, getObfuscatedWord(word));
+  }
+
   return (
     <>
-      <p className="my-4">{getObfuscatedWord(obfuscate.word)}</p>
-      <p className="my-10">{getObfuscatedSentence(obfuscate.sentence, obfuscate.word)}</p>
+      <p className="my-4">{getObfuscatedWord(word)}</p>
+      <p className="my-10">{getObfuscatedSentence(sentence, word)}</p>
     </>
   );
 }
@@ -75,47 +76,12 @@ function Practice() {
   const [isPracticeStarted, setIsPracticeStarted] = useState(false);
   const { id } = useParams();
 
-  const fetchTraining = useCallback(async () => {
-    try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/training/${id}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-      const data = await response.json();
-      setTraining(data);
-    } catch (error) {
-      console.error('Error fetching training:', error);
-    }
-  }, [id]);
-
-  const fetchTrainingWords = useCallback(async () => {
-    try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/training/start`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ id }),
-      });
-      const data = await response.json();
-      setWords(data);
-      localStorage.setItem('words', JSON.stringify(data));
-    } catch (error) {
-      console.error('Error fetching next question:', error);
-    }
-  }, [id, setWords]);
-
   function addChatBoxMessage (message) {
-    setChatBoxMessages((prevMessages) => [ { type: 'message', message }]);
+    setChatBoxMessages((prevMessages) => [ { type: 'default', message }]);
   }
 
   function addChatBoxAlert(type, message, mode = 'default') {
-    // console.log('addChatBoxAlert', type, message, mode);
-    const alert = { type, message };
-
-    setChatBoxAlerts((prevAlerts) => [alert]);
+    setChatBoxAlerts((prevAlerts) => [{ type, message }]);
 
     if (mode === 'default') {
       setTimeout(() => {
@@ -124,24 +90,7 @@ function Practice() {
     }
   }
 
-  const initPractice = useCallback(() => {
-    const words = JSON.parse(localStorage.getItem('words'));
-    addChatBoxAlert('default', 'Welcome to the practice session!', 'keep');
-    addChatBoxMessage(<TrainingWordsList words={words} />);
-  }, []);
-
-  const startPractice = () => {
-    getNextQuestion();
-    setIsPracticeStarted(true);
-  };
-
-  const getNextQuestion = useCallback(() => {
-    const currentWord = Object.keys(words)[currentWordIndex];
-    const currentWordDetails = words[currentWord];
-    addChatBoxMessage(<ObfuscatedQuestion obfuscate={{word: currentWord, sentence: currentWordDetails.example }} />);
-  }, [currentWordIndex, words]);
-
-  const handleUserSubmit = () => {
+  function handleUserSubmit(){
     const currentWord = Object.keys(words)[currentWordIndex];
 
     if (userAnswer.toLowerCase() === currentWord) {
@@ -151,17 +100,57 @@ function Practice() {
     } else {
       addChatBoxAlert('error', 'Incorrect. Try again.');
     }
-  };
+  }
+
+  const getNextQuestion = useCallback(() => {
+    const currentWord = Object.keys(words)[currentWordIndex];
+    const currentWordDetails = words[currentWord];
+    addChatBoxMessage(<ObfuscatedQuestion obfuscate={{ word: currentWord, sentence: currentWordDetails.example }} />);
+  }, [currentWordIndex, words]);
 
   useEffect(() => {
-    fetchTraining()
+    const fetchTraining = async (id) => {
+      try {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/training/${id}`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
+        });
+        const data = await response.json();
+        setTraining(data);
+      } catch (error) {
+        console.error('Error fetching training:', error);
+      }
+    };
+
+    const fetchTrainingWords = async (id) => {
+      try {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/training/start`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ id }),
+        });
+        const trainingWords = await response.json();
+        setWords(trainingWords);
+        localStorage.setItem('words', JSON.stringify(trainingWords));
+        return trainingWords;
+      } catch (error) {
+        console.error('Error fetching training words:', error);
+      }
+    };
+
+    fetchTraining(id)
       .then(() => {
-        fetchTrainingWords()
-          .then(() => {
-            initPractice();
+        fetchTrainingWords(id)
+          .then((trainingWords) => {
+            addChatBoxAlert( 'default', 'Welcome to the practice session!', 'keep');
+            addChatBoxMessage(<TrainingWordsList words={trainingWords} />);
           });
       });
-  }, [id, fetchTraining, fetchTrainingWords, initPractice]);
+  }, [id]);
 
   useEffect(() => {
     if (isPracticeStarted) {
@@ -194,7 +183,7 @@ function Practice() {
             Submit
           </button>
           <button
-            onClick={startPractice}
+            onClick={() => setIsPracticeStarted(true)}
             className="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600 ml-2"
           >
             Start
