@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {Link} from "react-router-dom";
+import logo from "../../assets/images/logo512.png";
 
 const Header = ({isAuthenticated, setIsAuthenticated }) => {
   const [username, setUsername] = useState('');
@@ -15,7 +16,8 @@ const Header = ({isAuthenticated, setIsAuthenticated }) => {
   return (
     <div className="">
       <div className="bg-blue-500 p-4 flex justify-between">
-        <div className="text-white inline-block">
+        <div className="text-white flex items-center">
+          <img width={20} src={logo} alt="Logo" className="mr-3"/>
           <h2 className="text-2xl font-bold my-4">Robbie</h2>
         </div>
         {isAuthenticated ? (
