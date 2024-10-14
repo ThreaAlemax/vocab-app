@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 
-function ChatBox({ alerts, messages }) {
+export function ChatBox({ alerts, messages }) {
   function ChatBoxAlert({ alert }) {
     return (
       <div className={`chatbox-alert chatbox-alert--${alert.type} py-2`}>
@@ -19,13 +19,13 @@ function ChatBox({ alerts, messages }) {
   }
 
   return (
-    <div className="chatbox w-full bg-white p-4 pt-0 mb-4 max-h-96 min-h-96 max-w-screen-lg mx-auto text-left overflow-auto relative">
+    <div className="chatbox w-full bg-white p-4 pt-0 mb-4 max-h-96 min-h-96 max-w-screen-lg mx-auto text-left overflow-auto relative shadow">
       <div className="chatbox-alerts z-10 h-16 text-center sticky top-0 w-full bg-white py-5">
         {alerts.map((alert, index) => (
           <ChatBoxAlert key={index} alert={alert} />
         ))}
       </div>
-      <div className="chatbox-messages top-20 absolute w-full">
+      <div className="chatbox-messages top-10 left-0 p-4 absolute w-full">
         <hr className="my-10" />
         {messages.map((msg, index) => (
           <ChatBoxMessage key={index} message={msg.message} />
@@ -48,6 +48,7 @@ function TrainingWordsList({ words }){
   ));
 }
 
+
 function PracticeSummary({ results }) {
   const summary = results.reduce((acc, result) => {
     if (!acc[result.word]) {
@@ -63,7 +64,7 @@ function PracticeSummary({ results }) {
   const accuracy = ((results.filter(result => result.isCorrect).length / results.length) * 100).toFixed(2);
 
   return (
-    <div className="summary text-left mx-auto max-w-screen-md bg-white">
+    <div className="summary text-left mx-auto max-w-screen-md bg-white p-4 shadow">
       <h2 className="text-2xl font-bold my-4">Summary</h2>
       <table className="table-auto w-full">
         <thead>
@@ -86,9 +87,9 @@ function PracticeSummary({ results }) {
   );
 }
 
-function ObfuscatedQuestion({ word, sentence, answer }) {
-  function getObfuscatedWord(word = '', userAnswer = '') {
-    return word.split('').map((char, index) => (userAnswer[index] === char ? char : '_')).join(' ');
+function ObfuscatedQuestion({ word, sentence, part }) {
+  function getObfuscatedWord(word = '', part = '') {
+    return word.split('').map((char, index) => (part[index] === char ? char : '_')).join(' ');
   }
 
   function getObfuscatedSentence(sentence = '', word = '') {
@@ -97,32 +98,27 @@ function ObfuscatedQuestion({ word, sentence, answer }) {
 
   return (
     <>
-      <p className="my-4">{getObfuscatedWord(word, answer)}</p>
+      <p className="my-4">{getObfuscatedWord(word, part)}</p>
       <p className="my-10">{getObfuscatedSentence(sentence, word)}</p>
     </>
   );
 }
 
-function Practice() {
+export default function Practice() {
   const { id } = useParams();
   const [training, setTraining] = useState(null);
-
   const [chatBoxMessages, setChatBoxMessages] = useState([]);
   const [chatBoxAlerts, setChatBoxAlerts] = useState([]);
-
   const [userAnswer, setUserAnswer] = useState('');
   const [userSubmittedAnswer, setUserSubmittedAnswer] = useState('');
-
   const [words, setWords] = useState([]);
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
-
   const [isPracticeStarted, setIsPracticeStarted] = useState(false);
   const [practiceComplete, setPracticeComplete] = useState(false);
-
   const [results, setResults] = useState([]);
 
-  function addChatBoxMessage (message) {
-    setChatBoxMessages((prevMessages) => [ { type: 'default', message }]);
+  function addChatBoxMessage(message) {
+    setChatBoxMessages((prevMessages) => [{ type: 'default', message }]);
   }
 
   function addChatBoxAlert(type, message, mode = 'default') {
@@ -160,11 +156,23 @@ function Practice() {
     }
   }
 
+  function handleSkip() {
+    if (currentWordIndex < Object.keys(words).length - 1) {
+      setCurrentWordIndex((prevIndex) => prevIndex + 1);
+      setUserAnswer('');
+      addChatBoxAlert('info', 'Skipped to the next word.');
+    } else {
+      setPracticeComplete(true);
+      addChatBoxAlert('info', 'You have completed all words!');
+      addChatBoxMessage('');
+    }
+  }
+
   const getNextQuestion = useCallback(() => {
     const currentWord = Object.keys(words)[currentWordIndex];
     const currentWordDetails = words[currentWord];
     addChatBoxMessage(
-      <ObfuscatedQuestion word={currentWord} sentence={currentWordDetails.example} answer={userSubmittedAnswer} />
+      <ObfuscatedQuestion word={currentWord} sentence={currentWordDetails.example} part={userSubmittedAnswer} />
     );
   }, [words, currentWordIndex, userSubmittedAnswer]);
 
@@ -206,7 +214,7 @@ function Practice() {
       .then(() => {
         fetchTrainingWords(id)
           .then((trainingWords) => {
-            addChatBoxAlert( 'default', 'Welcome to the practice session!', 'keep');
+            addChatBoxAlert('default', 'Welcome to the practice session!', 'keep');
             addChatBoxMessage(<TrainingWordsList words={trainingWords} />);
           });
       });
@@ -221,9 +229,9 @@ function Practice() {
   return (
     <div className="p-4 bg-gray-100 min-h-screen">
       {training ? (
-        <div>
+        <div className="">
           <h1 className="text-2xl font-bold mb-6">{training.name}</h1>
-          <ChatBox alerts={chatBoxAlerts} messages={chatBoxMessages}/>
+          <ChatBox alerts={chatBoxAlerts} messages={chatBoxMessages} />
           {practiceComplete ? (
             <PracticeSummary results={results} />
           ) : (
@@ -252,6 +260,13 @@ function Practice() {
               >
                 Start
               </button>
+              <button
+                onClick={handleSkip}
+                className="bg-red-500 text-white py-2 px-4 rounded hover:bg-red-600 ml-2"
+                disabled={!isPracticeStarted}
+              >
+                Skip
+              </button>
             </>
           )}
         </div>
@@ -261,5 +276,3 @@ function Practice() {
     </div>
   );
 }
-
-export default Practice;
