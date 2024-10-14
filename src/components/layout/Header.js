@@ -17,7 +17,7 @@ const Header = ({isAuthenticated, setIsAuthenticated }) => {
     <div className="">
       <div className="bg-blue-500 p-4 flex justify-between">
         <div className="text-white flex items-center">
-          <img width={20} src={logo} alt="Logo" className="mr-3"/>
+          <img width={25} src={logo} alt="Logo" className="mr-3"/>
           <h2 className="text-2xl font-bold my-4">Robbie</h2>
         </div>
         {isAuthenticated ? (
